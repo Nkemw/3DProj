@@ -9,12 +9,10 @@ public class PlayerController : MonoBehaviour
 
     public CharacterController controller;
     private Rigidbody rigidbody;
-    //public float speed = 10f;
     public float jumpHeight = 3f;
     public float dash = 5f;
     public float rotSpeed = 3f;
 
-    //private Vector3 dir = Vector3.zero;
     [SerializeField] Vector3 camPos;
     public Vector3 camRot;
 
@@ -24,12 +22,11 @@ public class PlayerController : MonoBehaviour
     {
         PosInit();
         magnitude = (Vector3.zero + camPos_FPP_Walk).magnitude;
-        //rigidbody = this.GetComponent<Rigidbody>();
         controller = GetComponent<CharacterController>();
     }
 
     public bool isFPP = true;
-    public float turnSpeed = 4.0f; // ¸¶¿ì½º È¸Àü ¼Óµµ    
+    public float turnSpeed = 4.0f; // ë§ˆìš°ìŠ¤ íšŒì „ ì†ë„    
     private float xRotate_TPP = 0.0f;
     private float yRotate_TPP = 0f;
 
@@ -51,7 +48,7 @@ public class PlayerController : MonoBehaviour
         camAngle_TPP = cam.transform.eulerAngles;
         cam.transform.position = transform.position + camPos;
 
-        //Ãß°¡
+        //ì¶”ê°€
         _offset = transform.position - cam.transform.position;
         distance = 3f;//Vector3.Distance(transform.position, cam.transform.position);
 
@@ -68,11 +65,39 @@ public class PlayerController : MonoBehaviour
     [SerializeField] public Vector3 camPos_FPP_Run;
     public Vector3 gravity = new Vector3(0f, -9.8f, 0f);
 
+    public static bool isRun = false;
 
+    public void JoysticMove()
+    {
+        if (variableJoystick.Vertical != 0 || variableJoystick.Horizontal != 0)
+        {
+            playerAnim.SetBool("IsWalk", true);
+            Vector3 direction = cam.transform.forward * variableJoystick.Vertical + cam.transform.right * variableJoystick.Horizontal;
+
+            direction = new Vector3(direction.x, 0f, direction.z);
+            if (isRun)
+            {
+                playerAnim.SetBool("IsRun", true);
+                controller.Move(direction * speed * 2.5f * Time.deltaTime);
+            }
+            else
+            {
+                playerAnim.SetBool("IsRun", false);
+                controller.Move(direction * speed * Time.deltaTime);
+            }
+
+            
+            //transform.forward = direction;
+            transform.forward = Vector3.Lerp(transform.forward, new Vector3(cam.transform.forward.x, 0f, cam.transform.forward.z), 10f * Time.deltaTime);
+        }
+        else
+        {
+            playerAnim.SetBool("IsWalk", false);
+            playerAnim.SetBool("IsRun", false);
+        }
+    }
     public void FPPMove()
     {
-        //FPPJumpAnim();
-        FPPJump();
         controller.Move(velocity * Time.deltaTime);
 
 
@@ -85,27 +110,16 @@ public class PlayerController : MonoBehaviour
 
 
 
-            // ÀÌµ¿ Ã³¸®
-
-
-            //transform.forward = moveDirection;
-            //transform.forward = Vector3.Lerp(transform.forward, moveDirection, 30f * Time.deltaTime);
+            // ì´ë™ ì²˜ë¦¬
             moveDirection.Normalize();
             if (Input.GetKey(KeyCode.LeftShift))
             {
                 playerAnim.SetBool("IsRun", true);
-                /*Vector3 bb = new Vector3(transform.forward.x, 0f, transform.forward.z);
-                bb.Normalize();
-                //Vector3 newVec = new Vector3(bb.x, camPos_FPP_Run.y, bb.z);
-                Vector3 newVec = camPos_FPP_Run;
-                //cam.transform.position = transform.position + camPos_FPP_Run;
-                cam.transform.position = transform.position + newVec;*/
                 controller.Move(moveDirection * speed * 3f * Time.deltaTime);
             }
             else
             {
                 playerAnim.SetBool("IsRun", false);
-                //Vector3.Lerp(transform.position, transform.position + moveDirection, 10f * Time.deltaTime);
                 controller.Move(moveDirection * speed * Time.deltaTime);
 
             }
@@ -122,19 +136,14 @@ public class PlayerController : MonoBehaviour
 
     public void FPPJump()
     {
-        if (controller.isGrounded && velocity.y <= 0.05f)
-        {
-            velocity.y = 0f;
-            playerAnim.SetBool("IsJump", false);
-        }
+        
 
-        if (Input.GetKeyDown(KeyCode.Space) && velocity.y <= 0.01f)
+        if (velocity.y <= 0.01f)
         {
             velocity.y = 9.8f * 2f / 3f;
             playerAnim.SetBool("IsJump", true);
         }
-
-        velocity.y += -9.8f * Time.deltaTime;
+        
     }
 
     public void FPPJumpAnim()
@@ -150,95 +159,166 @@ public class PlayerController : MonoBehaviour
     public Vector3 playerDirect;
 
     public bool isblocked = false;
+
+    [SerializeField] GameObject touchParticle;
+    [SerializeField] Camera particleCam;
+
+    
+    public void StartParticle()
+    {
+        Vector3 particlePos = particleCam.ScreenToWorldPoint(Input.mousePosition);
+        particlePos.z = 0f;
+
+        if(touchParticle.TryGetComponent<RectTransform>(out RectTransform rect))
+        {
+            rect.position = particlePos;
+        }
+
+        if (touchParticle.TryGetComponent<ParticleSystem>(out ParticleSystem particle))
+        {
+            particle.Play();
+        }
+        Debug.Log("íŒŒí‹°í´ ì‹¤í–‰");
+    }
+
+    private Vector2 startPos;
+    private bool isDragging;
     void Update()
     {
 
+        if (controller.isGrounded && velocity.y <= 0.05f)
+        {
+            velocity.y = 0f;
+            playerAnim.SetBool("IsJump", false);
+        }
+        velocity.y += -9.8f * Time.deltaTime;
+        controller.Move(velocity * Time.deltaTime);
+
+        if (Input.GetKeyDown(KeyCode.Q))
+        {
+            StartParticle();
+        }
+
+        if (Input.GetMouseButtonDown(0))
+        {
+            StartParticle();
+        }
 
         horizontalMovement = Input.GetAxisRaw("Horizontal");
         verticalMovement = Input.GetAxisRaw("Vertical");
-        /*if (Input.GetKey(KeyCode.UpArrow))
-        {
-            verticalMovement = 1f;
-        }
-        else if (Input.GetKey(KeyCode.DownArrow))
-        {
-            verticalMovement = -1f;
-        }
-        else
-        {
-            verticalMovement = 0f;
-        }
-        if (Input.GetKey(KeyCode.RightArrow))
-        {
-            horizontalMovement = 1f;
-        }
-        else if (Input.GetKey(KeyCode.LeftArrow))
-        {
-            horizontalMovement = -1f;
-        }
-        else
-        {
-            horizontalMovement = 0f;
-        }*/
+
+        FixedCamPosition();
+
+        JoysticMove();
 
         if (isFPP)
         {
 
-            playerDirect = cam.transform.forward * verticalMovement + cam.transform.right * horizontalMovement;
 
-            //newFPPPos = new Vector3(FPPPos.x*Mathf.Cos(yRotate_TPP), FPPPos.y, FPPPos.z*Mathf.Sin(yRotate_TPP));
-            //cam.transform.position = Vector3.Lerp(cam.transform.position, transform.position + camPos_FPP_Walk, 0.1f * Time.deltaTime);
-            //Vector3 bb = new Vector3(transform.forward.x, 0f, transform.forward.z);
-            //bb.Normalize();
-            //Vector3 newVec = new Vector3(bb.x, camPos_FPP_Walk.y, bb.z);
-            //Vector3 newVec = camPos_FPP_Walk;
-            //cam.transform.position = transform.position + newVec;
-            //cam.transform.rotation = transform.rotation;
-            //cam.transform.position = transform.position + FPPPos;
 
-            // ÁÂ¿ì·Î ¿òÁ÷ÀÎ ¸¶¿ì½ºÀÇ ÀÌµ¿·® * ¼Óµµ¿¡ µû¶ó Ä«¸Ş¶ó°¡ ÁÂ¿ì·Î È¸ÀüÇÒ ¾ç °è»ê
-            float yRotateSize = Input.GetAxis("Mouse X") * turnSpeed;
-            // ÇöÀç yÃà È¸Àü°ª¿¡ ´õÇÑ »õ·Î¿î È¸Àü°¢µµ °è»ê
-            float yRotate = cam.transform.eulerAngles.y + yRotateSize;
-
-            // À§¾Æ·¡·Î ¿òÁ÷ÀÎ ¸¶¿ì½ºÀÇ ÀÌµ¿·® * ¼Óµµ¿¡ µû¶ó Ä«¸Ş¶ó°¡ È¸ÀüÇÒ ¾ç °è»ê(ÇÏ´Ã, ¹Ù´ÚÀ» ¹Ù¶óº¸´Â µ¿ÀÛ)
-            float xRotateSize = -Input.GetAxis("Mouse Y") * turnSpeed;
-            // À§¾Æ·¡ È¸Àü·®À» ´õÇØÁÖÁö¸¸ -45µµ ~ 80µµ·Î Á¦ÇÑ (-45:ÇÏ´Ã¹æÇâ, 80:¹Ù´Ú¹æÇâ)
-            // Clamp ´Â °ªÀÇ ¹üÀ§¸¦ Á¦ÇÑÇÏ´Â ÇÔ¼ö
-            xRotate_TPP = Mathf.Clamp(xRotate_TPP + xRotateSize, -85, 85);
-            //yRotate_TPP = Mathf.Clamp(yRotate_TPP + yRotateSize, -90, 90);
-
-            // Ä«¸Ş¶ó È¸Àü·®À» Ä«¸Ş¶ó¿¡ ¹İ¿µ(X, YÃà¸¸ È¸Àü)
-            cam.transform.eulerAngles = new Vector3(xRotate_TPP, yRotate, 0);
-            //transform.rotation = Quaternion.Lerp(transform.rotation, cam.transform.rotation, 10f * Time.deltaTime);
-
-            //Debug.Log(magnitude);
-
-            //cam.transform.position = transform.position - new Vector3(cam.transform.forward.x, 0f, cam.transform.forward.z) * magnitude + new Vector3(0f, 2.2f, 0f);//Vector3.Cross(new Vector3(-0.5f, 2.2f, 0f), cam.transform.forward.normalized);
-            //cam.transform.position = transform.position + (transform.rotation * new Vector3(0.5f, 2.2f, -2.5f));//.normalized * magnitude;
-
-            if (!(stateAfterLoadScene == 2))
+            if (Input.touchCount > 0)
             {
-                //Debug.Log("asd");
-
-
-                Vector3 targetPosition = target.position + Vector3.up * height;
-
-                if (Physics.Raycast(transform.position + new Vector3(0f, 2f, 0f), -cam.transform.forward, out _hitInfo, distance))
+                Touch touch = Input.GetTouch(0);
+                float horizontalRotate;
+                float verticalRotate;
+                switch (touch.phase)
                 {
-                    // ·¹ÀÌÄ³½ºÆ®°¡ °¡¸®´Â ¿ÀºêÁ§Æ® ¾ÕÂÊ¿¡ Ä«¸Ş¶ó À§Ä¡ ¼³Á¤
+                    case TouchPhase.Began:
+                        startPos = touch.position;
+                        isDragging = true;
+                        break;
+                    case TouchPhase.Moved:
+                        if (isDragging)
+                        {
+                            Vector2 delta = new Vector2();
+                            if (touch.position.x > Screen.width/2)
+                            {
+                                delta = touch.position - startPos;
+                            }
 
-                    cam.transform.position = Vector3.Lerp(cam.transform.position, _hitInfo.point, 20f * smoothSpeed * Time.deltaTime);
-                    //isblocked = true;
+                            horizontalRotate = 5f* delta.x / Screen.width;
+                            verticalRotate = 5f *delta.y / Screen.height;
+
+                            // ì‚¬ìš©ìê°€ ë“œë˜ê·¸í•˜ëŠ” ë™ì•ˆ ìˆ˜í–‰í•  ë™ì‘
+                            // horizontalInputì™€ verticalInputë¥¼ ì´ìš©í•˜ì—¬ ì…ë ¥ ì²˜ë¦¬
+
+                            float yRotateSize1 = horizontalRotate * turnSpeed;
+                            
+                            float yRotate1 = cam.transform.eulerAngles.y + yRotateSize1;
+
+                            float xRotateSize1 = -verticalRotate * turnSpeed;
+                            xRotate_TPP = Mathf.Clamp(xRotate_TPP + xRotateSize1, -85, 85);
+                            cam.transform.eulerAngles = new Vector3(xRotate_TPP, yRotate1, 0);
+                        }
+                        break;
+                    case TouchPhase.Ended:
+                        isDragging = false;
+                        break;
                 }
-                else
+                
+                if(Input.touchCount > 1)
                 {
-                    //Debug.Log("ccc");
-                    Vector3 bb = transform.position + new Vector3(0f, 2f, 0f);
-                    cam.transform.position = bb + (cam.transform.rotation * new Vector3(0.5f, 0.2f, -2.5f));
+                    Touch touch2 = Input.GetTouch(1);
+                    switch (touch2.phase)
+                    {
+                        case TouchPhase.Began:
+                            startPos = touch2.position;
+                            isDragging = true;
+                            break;
+                        case TouchPhase.Moved:
+                            if (isDragging)
+                            {
+                                Vector2 delta = new Vector2();
+                                if (touch2.position.x > Screen.width/2)
+                                {
+                                    delta = touch2.position - startPos;
+                                }
+
+                                horizontalRotate = 5f * delta.x / Screen.width;
+                                verticalRotate = 5f * delta.y / Screen.height;
+
+                                // ì‚¬ìš©ìê°€ ë“œë˜ê·¸í•˜ëŠ” ë™ì•ˆ ìˆ˜í–‰í•  ë™ì‘
+                                // horizontalInputì™€ verticalInputë¥¼ ì´ìš©í•˜ì—¬ ì…ë ¥ ì²˜ë¦¬
+                                //playerDirect = cam.transform.forward * verticalMovement + cam.transform.right * horizontalMovement;
+
+                                float yRotateSize1 = horizontalRotate * turnSpeed;
+
+                                float yRotate1 = cam.transform.eulerAngles.y + yRotateSize1;
+
+                                float xRotateSize1 = -verticalRotate * turnSpeed;
+                                xRotate_TPP = Mathf.Clamp(xRotate_TPP + xRotateSize1, -85, 85);
+                                cam.transform.eulerAngles = new Vector3(xRotate_TPP, yRotate1, 0);
+                            }
+                            break;
+                        case TouchPhase.Ended:
+                            isDragging = false;
+                            break;
+                    }
                 }
             }
-            FPPMove();
+            else
+            {
+                playerDirect = cam.transform.forward * verticalMovement + cam.transform.right * horizontalMovement;
+            }
+
+            // ì¢Œìš°ë¡œ ì›€ì§ì¸ ë§ˆìš°ìŠ¤ì˜ ì´ë™ëŸ‰ * ì†ë„ì— ë”°ë¼ ì¹´ë©”ë¼ê°€ ì¢Œìš°ë¡œ íšŒì „í•  ì–‘ ê³„ì‚°
+            float yRotateSize = Input.GetAxis("Mouse X") * turnSpeed;
+            // í˜„ì¬ yì¶• íšŒì „ê°’ì— ë”í•œ ìƒˆë¡œìš´ íšŒì „ê°ë„ ê³„ì‚°
+            float yRotate = cam.transform.eulerAngles.y + yRotateSize;
+
+            // ìœ„ì•„ë˜ë¡œ ì›€ì§ì¸ ë§ˆìš°ìŠ¤ì˜ ì´ë™ëŸ‰ * ì†ë„ì— ë”°ë¼ ì¹´ë©”ë¼ê°€ íšŒì „í•  ì–‘ ê³„ì‚°(í•˜ëŠ˜, ë°”ë‹¥ì„ ë°”ë¼ë³´ëŠ” ë™ì‘)
+            float xRotateSize = -Input.GetAxis("Mouse Y") * turnSpeed;
+            // ìœ„ì•„ë˜ íšŒì „ëŸ‰ì„ ë”í•´ì£¼ì§€ë§Œ -45ë„ ~ 80ë„ë¡œ ì œí•œ (-45:í•˜ëŠ˜ë°©í–¥, 80:ë°”ë‹¥ë°©í–¥)
+            // Clamp ëŠ” ê°’ì˜ ë²”ìœ„ë¥¼ ì œí•œí•˜ëŠ” í•¨ìˆ˜
+            xRotate_TPP = Mathf.Clamp(xRotate_TPP + xRotateSize, -85, 85);
+
+            // ì¹´ë©”ë¼ íšŒì „ëŸ‰ì„ ì¹´ë©”ë¼ì— ë°˜ì˜(X, Yì¶•ë§Œ íšŒì „)
+            cam.transform.eulerAngles = new Vector3(xRotate_TPP, yRotate, 0);
+
+           
+            Vector3 bb = transform.position + new Vector3(0f, 2f, 0f);
+            cam.transform.position = bb + (cam.transform.rotation * new Vector3(0.5f, 0.2f, -2.5f));
+
 
         }
         else
@@ -247,42 +327,7 @@ public class PlayerController : MonoBehaviour
             FixedCamPosition();
 
             JoysticMove();
-            /*
-            //Debug.Log(transform.forward);
-            if (verticalMovement != 0f || horizontalMovement != 0f)
-            {
-                Vector3 direction = Vector3.forward * verticalMovement + Vector3.right * horizontalMovement;
-
-                direction.Normalize();
-
-                if (!(direction == Vector3.zero))
-                {
-                    /*if (Mathf.Sign(transform.forward.x) != Mathf.Sign(verticalMovement) || Mathf.Sign(transform.forward.z) != Mathf.Sign(horizontalMovement))
-                    {
-                        transform.Rotate(0, 0.01f, 0);
-                    }
-                    //transform.forward = direction;
-                    transform.forward = Vector3.Lerp(transform.forward, direction, rotSpeed*10f*Time.deltaTime);
-                    //transform.eulerAngles = direction;
-                    
-                }
-                /*if (dir != Vector3.zero)
-                {
-                    if (Mathf.Sign(transform.forward.x) != Mathf.Sign(dir.x) || Mathf.Sign(transform.forward.z) != Mathf.Sign(dir.z))
-                    {
-                        transform.Rotate(0, 1, 0);
-                    }
-                    transform.forward = Vector3.Lerp(transform.forward, dir, 5f * rotSpeed * Time.deltaTime);
-                }
-
-                _velocity.y = -9.8f;
-                controller.Move(direction * speed * Time.deltaTime);
-                controller.Move(_velocity * Time.deltaTime);
-                //transform.position = (transform.position + direction * speed * Time.deltaTime);
-                
-
-                /*cam.transform.eulerAngles = camAngle_TPP;
-                transform.position = (this.gameObject.transform.position + dir * speed * Time.deltaTime);*/
+          
 
         }
 
@@ -321,13 +366,10 @@ public class PlayerController : MonoBehaviour
     public static int stateAfterLoadScene = 0;
     public void PosInit()
     {
-        //Vector3 relativePosition = forgePos.transform.position - transform.position;
 
-        // »ó´ë À§Ä¡¸¦ ÀÌµ¿ÇÏ·Á´Â ¿ÀºêÁ§Æ®ÀÇ ·ÎÄÃ ÃàÀ¸·Î º¯È¯
-        //Vector3 localPosition = transform.InverseTransformDirection(relativePosition);
+        // ìƒëŒ€ ìœ„ì¹˜ë¥¼ ì´ë™í•˜ë ¤ëŠ” ì˜¤ë¸Œì íŠ¸ì˜ ë¡œì»¬ ì¶•ìœ¼ë¡œ ë³€í™˜
 
-        // ÀÌµ¿ÇÏ·Á´Â ¿ÀºêÁ§Æ®ÀÇ À§Ä¡¸¦ ´ë»ó ¿ÀºêÁ§Æ®ÀÇ ·ÎÄÃ ÃàÀ¸·Î ÀÌµ¿
-        //transform.Translate(localPosition);
+        // ì´ë™í•˜ë ¤ëŠ” ì˜¤ë¸Œì íŠ¸ì˜ ìœ„ì¹˜ë¥¼ ëŒ€ìƒ ì˜¤ë¸Œì íŠ¸ì˜ ë¡œì»¬ ì¶•ìœ¼ë¡œ ì´ë™
         if (stateBeforeLoadVillageScene == (int)LoadSceneState.Forge)
         {
             transform.position = forgePos.transform.position;
@@ -339,88 +381,14 @@ public class PlayerController : MonoBehaviour
             transform.Rotate(0f, 90f, 0f);
         }
     }
-    /*public Vector3 aa;
-    private void FixedUpdate()
-    {
+   
 
-        
-    }*/
-    /*[SerializeField] private float moveSpeed = 5f;
-    [SerializeField] private float mouseSensitivity = 100f;
+    public Transform target; // ì¹´ë©”ë¼ê°€ ë”°ë¼ë‹¤ë‹ íƒ€ê²Ÿ
+    public float distance = 5f; // ì¹´ë©”ë¼ì™€ íƒ€ê²Ÿ ì‚¬ì´ì˜ ê±°ë¦¬
+    public float height = 2f; // ì¹´ë©”ë¼ì™€ íƒ€ê²Ÿ ì‚¬ì´ì˜ ë†’ì´
+    public float smoothSpeed = 10f; // ì¹´ë©”ë¼ ì´ë™ ì‹œ ì†ë„
 
-    private Camera playerCamera;
-    private Vector3 velocity = Vector3.zero;
-    private float verticalLookRotation;
-
-    private void Start()
-    {
-        playerCamera = Camera.main;
-        Cursor.lockState = CursorLockMode.Locked;
-        Cursor.visible = false;
-    }
-
-    private void Update()
-    {
-        float mouseX = Input.GetAxisRaw("Mouse X") * mouseSensitivity * Time.deltaTime;
-        float mouseY = Input.GetAxisRaw("Mouse Y") * mouseSensitivity * Time.deltaTime;
-
-        transform.Rotate(Vector3.up * mouseX);
-
-        verticalLookRotation += mouseY;
-        verticalLookRotation = Mathf.Clamp(verticalLookRotation, -90f, 90f);
-
-        playerCamera.transform.localEulerAngles = new Vector3(-verticalLookRotation, 0f, 0f);
-
-        float horizontalInput = Input.GetAxisRaw("Horizontal");
-        float verticalInput = Input.GetAxisRaw("Vertical");
-
-        Vector3 moveHorizontal = transform.right * horizontalInput;
-        Vector3 moveVertical = transform.forward * verticalInput;
-
-        velocity = (moveHorizontal + moveVertical).normalized * moveSpeed;
-
-
-        transform.Translate(velocity * Time.deltaTime, Space.World);
-    }*/
-
-    public void JoysticMove()
-    {
-        if (variableJoystick.Vertical != 0 && variableJoystick.Horizontal != 0)
-        {
-            playerAnim.SetBool("IsWalk", true);
-            Vector3 direction = Vector3.forward * variableJoystick.Vertical + Vector3.right * variableJoystick.Horizontal;
-            if (Input.GetKey(KeyCode.LeftShift))
-            {
-                playerAnim.SetBool("IsRun", true);
-                controller.Move(direction * speed * 2.5f * Time.deltaTime);
-            }
-            else
-            {
-                playerAnim.SetBool("IsRun", false);
-                controller.Move(direction * speed * Time.deltaTime);
-            }
-
-            controller.Move(new Vector3(0f, -9.8f, 0f) * Time.deltaTime);
-            transform.forward = direction;
-        }
-        else
-        {
-            playerAnim.SetBool("IsWalk", false);
-            playerAnim.SetBool("IsRun", false);
-        }
-    }
-
-    public Transform target; // Ä«¸Ş¶ó°¡ µû¶ó´Ù´Ò Å¸°Ù
-    public float distance = 5f; // Ä«¸Ş¶ó¿Í Å¸°Ù »çÀÌÀÇ °Å¸®
-    public float height = 2f; // Ä«¸Ş¶ó¿Í Å¸°Ù »çÀÌÀÇ ³ôÀÌ
-    public float smoothSpeed = 10f; // Ä«¸Ş¶ó ÀÌµ¿ ½Ã ¼Óµµ
-
-    private Vector3 _offset; // Ä«¸Ş¶ó À§Ä¡¿Í Å¸°Ù À§Ä¡ÀÇ Â÷ÀÌ
-    private RaycastHit _hitInfo; // ·¹ÀÌÄ³½ºÆ® °á°ú ÀúÀå¿ë º¯¼ö
-
-
-    /* private void FixedUpdate()
-     {
-
-     }*/
+    private Vector3 _offset; // ì¹´ë©”ë¼ ìœ„ì¹˜ì™€ íƒ€ê²Ÿ ìœ„ì¹˜ì˜ ì°¨ì´
+    private RaycastHit _hitInfo; // ë ˆì´ìºìŠ¤íŠ¸ ê²°ê³¼ ì €ì¥ìš© ë³€ìˆ˜
+    
 }
