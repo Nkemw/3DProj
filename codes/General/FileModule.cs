@@ -16,9 +16,6 @@ public abstract class FileWriter
 
     public static FileWriter CreateWriter(string filePath)
     {
-        //ÆÄÀÏÀÇ È®ÀåÀÚ°¡ .jsonÀÎÁö È®ÀÎÇÏ¿© È®ÀåÀÚ¿¡ ¸Â´Â ÆÄÀÏÀ» ÀúÀå
-        //.json È®ÀåÀÚ°¡ ¾Æ´Ñ ÆÄÀÏµéÀº ¸ğµÎ TextfileWriter·Î ÀúÀåµÇ¹Ç·Î
-        //TextFileWriterÀÇ ÀÇ¹Ì°¡ ¸ğÈ£ÇÔ
         if (filePath.EndsWith(".json"))
         {
             return new JsonFileWriter(filePath);
@@ -32,12 +29,12 @@ public abstract class FileWriter
 
 public class JsonFileWriter : FileWriter
 {
-    //ÆÄÀÏ °æ·Î¸¦ ¹Ş¾Æ ºÎ¸ğ Å¬·¡½ºÀÎ FileWriter¿¡ »ı¼ºÀÚ Àü´Ş
+    //íŒŒì¼ ê²½ë¡œë¥¼ ë°›ì•„ ë¶€ëª¨ í´ë˜ìŠ¤ì¸ FileWriterì— ìƒì„±ì ì „ë‹¬
     public JsonFileWriter(string filePath) : base(filePath) { }
 
     public override void WriteData(object data)
     {
-        string json = JsonUtility.ToJson(data);     //JsonÇü½ÄÀ¸·Î º¯È¯ÇÑ µÚ ÆÄÀÏ ÀúÀå
+        string json = JsonUtility.ToJson(data);     //Jsoní˜•ì‹ìœ¼ë¡œ ë³€í™˜í•œ ë’¤ íŒŒì¼ ì €ì¥
         Debug.Log(json);
         File.WriteAllText(filePath, json);
     }
@@ -49,7 +46,7 @@ public class TextFileWriter : FileWriter
 
     public override void WriteData(object data)
     {
-        string text = data.ToString();              //¹®ÀÚ¿­·Î º¯È¯ÇÑ µÚ ÆÄÀÏ ÀúÀå
+        string text = data.ToString();              //ë¬¸ìì—´ë¡œ ë³€í™˜í•œ ë’¤ íŒŒì¼ ì €ì¥
         File.WriteAllText(filePath, text);
     }
 }
@@ -63,7 +60,7 @@ public abstract class FileReader
         this.filePath = filePath;
     }
 
-    public abstract T ReadData<T>(); //°´Ã¼ÀÇ Å¸ÀÔÀ¸·Î ÆÄÀÏÀ» ºÒ·¯¿À°í ÀÌ¸¦ ¹İÈ¯
+    public abstract T ReadData<T>(); //ê°ì²´ì˜ íƒ€ì…ìœ¼ë¡œ íŒŒì¼ì„ ë¶ˆëŸ¬ì˜¤ê³  ì´ë¥¼ ë°˜í™˜
 
     public static FileReader CreateReader(string filePath)
     {
@@ -100,25 +97,8 @@ public class TextFileReader : FileReader
     }
 }
 
-
-/*public class Person
-{
-    public string name;
-    public int age;
-
-    public InventoryData inventoryData = new InventoryData();
-}*/
-
-/*[System.Serializable]
-public class InventoryData
-{
-    public string name;
-    public List<string> itemData = new List<string>();
-}*/
-
 public class FileModule : MonoBehaviour
 {
-    //public static InventoryData inventoryData = new InventoryData();
     public static int MAXINVENTORYCOUNT = 36;
 
     public static string filePath;
@@ -131,67 +111,4 @@ public class FileModule : MonoBehaviour
         writer = FileWriter.CreateWriter(filePath);
         reader = FileReader.CreateReader(filePath);
     }
-    private void Awake()
-    {
-
-        /*Person a = new Person();
-
-        a.name = "Alice";
-        a.age = 25;
-
-        a.inventoryData.itemData.Add("aa");
-        a.inventoryData.itemData.Add("bb");
-
-        a.inventoryData.name = "asd";
-        writer.WriteData(a);
-
-        Person b = reader.ReadData<Person>();
-
-        Debug.Log(b.name + " " + b.age);
-
-        Debug.Log(filePath);
-        for(int i = 0; i < b.inventoryData.itemData.Count; i++)
-        {
-            Debug.Log(b.inventoryData.itemData[i]);
-        }*/
-        /*string filePath = Application.persistentDataPath + "/data.json";
-
-        //ÆÄÀÏ °æ·Î È®ÀÎ
-        Debug.Log(filePath);
-
-        FileWriter writer = FileWriter.CreateWriter(filePath);
-        FileReader reader = FileReader.CreateReader(filePath);
-
-        // ¾µ µ¥ÀÌÅÍ »ı¼º
-        Person savePeople = new Person("Alice", 25);
-
-        // µ¥ÀÌÅÍ ¾²±â
-        writer.WriteData(savePeople);
-
-        // ºÒ·¯¿Ã µ¥ÀÌÅÍ »ı¼º
-        Person loadPeople = reader.ReadData<Person>();
-
-        Debug.Log("ºÒ·¯¿Â »ç¶÷ÀÇ ÀÌ¸§: " + loadPeople.name +
-                    " ºÒ·¯¿Â »ç¶÷ÀÇ ³ªÀÌ: " + loadPeople.age);*/
-
-    }
-
-    /*public static void pushItemIntoInventory(string itemPath)
-    {
-        if (inventoryData.itemData.Count < 36)
-        {
-            inventoryData.itemData.Add(itemPath);
-        }
-    }
-
-    public static void saveInventoryData()
-    {
-        writer.WriteData(inventoryData);
-    }
-
-    public static void loadInventoryData()
-    {
-        inventoryData = reader.ReadData<InventoryData>();
-    }*/
 }
-
